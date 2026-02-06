@@ -126,7 +126,7 @@ except gspread.exceptions.WorksheetNotFound:
 
 # ────────────────────────────────────────────────
 
-def init_undetected_driver(headless=False):
+def init_undetected_driver(headless=True):
     options = uc.ChromeOptions()
     if headless:
         options.add_argument("--headless")
@@ -304,7 +304,7 @@ def extract_detail_data(driver, detail_url):
 
 
 def scrape():
-    driver = init_undetected_driver(headless=False)
+    driver = init_undetected_driver(headless=True)
     all_tenders = []
     
     try:
