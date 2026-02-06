@@ -61,12 +61,13 @@ jobs:
         python main.py
 
     # Optional: commit any changes (logs, debug files, etc.)
-    - name: Commit any changes
-      run: |
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
-        git add .
-        git commit -m "Daily scrape update $(date)" || echo "No changes to commit"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #- name: Commit any changes
+    #  run: |
+    #    git config --global user.name "GitHub Action"
+    #    git config --global user.email "action@github.com"
+    #    git add .
+    #    git commit -m "Daily scrape update $(date)" || echo "No changes to commit"
+    #    git push
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #
