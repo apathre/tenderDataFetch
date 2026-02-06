@@ -6,7 +6,7 @@ on:
     # IST = UTC +5:30 → 11:00 IST = 05:30 UTC
     - cron: '30 5 * * *'
 
-  # Allow manual run from GitHub UI (useful for testing)
+  # Allow manual trigger from GitHub UI
   workflow_dispatch:
 
 jobs:
@@ -27,15 +27,32 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: DEBUG - Check SERVICE_ACCOUNT_JSON secret
+      run: |
+        echo "=== SECRET DEBUG START ==="
+        echo "Is secret defined? ${{ secrets.SERVICE_ACCOUNT_JSON != '' }}"
+        echo "Secret length: $(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | wc -c)"
+        echo "First 20 chars: $(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | head -c 20)"
+        echo "Last 20 chars:  $(printf '%s' '${{ secrets.SERVICE_ACCOUNT_JSON }}' | tail -c 20 | rev | cut -c1-20 | rev)"
+        echo "=== SECRET DEBUG END ==="
+
     - name: Create service account file from secret
       run: |
-        echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" | sed 's/./&/g'
+        if [ -z "${{ secrets.SERVICE_ACCOUNT_JSON }}" ]; then
+          echo "ERROR: SERVICE_ACCOUNT_JSON secret is missing or empty"
+          exit 1
+        fi
+        
+        echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > service_account.json
+        echo "service_account.json created from secret"
+        ls -l service_account.json
+        echo "File size: $(ls -l service_account.json | awk '{print $5}') bytes"
 
     - name: Run scraper
       run: python main.py
 
-    # Optional: commit any new debug files or logs if you want
-    - name: Commit changes (if any)
+    # Optional: commit any changes (logs, debug files, etc.)
+    - name: Commit any changes (optional)
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
