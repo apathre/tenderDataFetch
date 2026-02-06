@@ -94,24 +94,27 @@ print(f"Using SHEET_URL: {SHEET_URL}")
 # Try to load from GitHub secret (environment variable)
 service_account_str = os.getenv("SERVICE_ACCOUNT_JSON")
 
-if service_account_str:
-    # Running on GitHub Actions → use secret
-    print("Loading credentials from GitHub secret...")
-    try:
-        service_account_info = json.loads(service_account_str)
-        creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-    except json.JSONDecodeError:
-        print("ERROR: Invalid JSON in SERVICE_ACCOUNT_JSON secret")
-        raise
-    except Exception as e:
-        print(f"ERROR loading secret: {e}")
-        raise
-#else:
-    # Running locally → use file
- #   creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+if not service_account_str:
+    raise ValueError(
+        "ERROR: SERVICE_ACCOUNT_JSON secret is missing or empty. "
+        "Please add it in GitHub repo Settings → Secrets and variables → Actions."
+    )
 
-#creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+print("Loading credentials from GitHub secret (SERVICE_ACCOUNT_JSON)...")
+
+try:
+    service_account_info = json.loads(service_account_str)
+    creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+except json.JSONDecodeError:
+    raise ValueError("ERROR: SERVICE_ACCOUNT_JSON secret contains invalid JSON format.")
+except Exception as e:
+    raise Exception(f"ERROR while loading credentials from secret: {str(e)}")
+
+# Authorize gspread
 client = gspread.authorize(creds)
+print("Google Sheets client authorized successfully!")
+
+
 spreadsheet = client.open_by_url(SHEET_URL)
 
 try:
