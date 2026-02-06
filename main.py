@@ -90,31 +90,42 @@ with open(SHEETS_CONFIG_FILE, 'r') as f:
 
 print(f"Using SHEET_URL: {SHEET_URL}")
 
-# Google Sheets setup
-# Try to load from GitHub secret (environment variable)
+# ────────────────────────────────────────────────
+# Load credentials from GitHub secret (required in Actions)
+# ────────────────────────────────────────────────
+
+print("Checking for SERVICE_ACCOUNT_JSON secret...")
+
 service_account_str = os.getenv("SERVICE_ACCOUNT_JSON")
 
 if not service_account_str:
+    print("SERVICE_ACCOUNT_JSON is empty or missing in environment")
     raise ValueError(
         "ERROR: SERVICE_ACCOUNT_JSON secret is missing or empty. "
         "Please add it in GitHub repo Settings → Secrets and variables → Actions."
     )
 
-print("Loading credentials from GitHub secret (SERVICE_ACCOUNT_JSON)...")
+print(f"Secret found! Length: {len(service_account_str)} characters")
 
 try:
     service_account_info = json.loads(service_account_str)
+    print("JSON parsed successfully")
+except json.JSONDecodeError as e:
+    print(f"JSON parse error: {str(e)}")
+    raise
+
+try:
     creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-except json.JSONDecodeError:
-    raise ValueError("ERROR: SERVICE_ACCOUNT_JSON secret contains invalid JSON format.")
+    print("Credentials object created successfully")
 except Exception as e:
-    raise Exception(f"ERROR while loading credentials from secret: {str(e)}")
+    print(f"Error creating credentials: {str(e)}")
+    raise
 
 # Authorize gspread
 client = gspread.authorize(creds)
 print("Google Sheets client authorized successfully!")
 
-
+# Open spreadsheet
 spreadsheet = client.open_by_url(SHEET_URL)
 
 try:
@@ -124,6 +135,8 @@ except gspread.exceptions.WorksheetNotFound:
     worksheet = spreadsheet.add_worksheet(title=WORKSHEET_NAME, rows=2000, cols=len(FIXED_HEADERS))
     print(f"Created new worksheet: '{WORKSHEET_NAME}'")
 
+# ────────────────────────────────────────────────
+# Rest of your functions remain unchanged
 # ────────────────────────────────────────────────
 
 def init_undetected_driver(headless=True):
@@ -159,15 +172,9 @@ def save_debug_html(driver, filename):
 
 
 def extract_detail_data(driver, detail_url):
-    """
-    Extract ONLY the requested fields using .td_caption and .td_field classes.
-    Pairs captions with following fields in the same row.
-    Cleans amounts (removes commas, keeps as string for numeric fields).
-    """
     soup = BeautifulSoup(driver.page_source, "html.parser")
     data = {header: "" for header in FIXED_HEADERS}
 
-    # Save URL
     data["Tender Detail URL"] = detail_url
 
     def clean_text(text):
@@ -178,11 +185,9 @@ def extract_detail_data(driver, detail_url):
 
     def clean_number(text):
         text = clean_text(text)
-        # Remove commas, currency symbols, keep digits and decimal
         text = re.sub(r'[^\d.]', '', text)
         return text if text else ""
 
-    # Process all rows in tablebg tables
     for table in soup.find_all("table", class_="tablebg"):
         for tr in table.find_all("tr"):
             tds = tr.find_all("td")
@@ -198,7 +203,7 @@ def extract_detail_data(driver, detail_url):
 
                     caption_lower = caption.lower()
                     mapped = False
-                    for header in FIXED_HEADERS[:-1]:  # exclude URL
+                    for header in FIXED_HEADERS[:-1]:
                         header_lower = header.lower().replace(" in rs", "").replace("(days)", "").replace(" in \u20b9", "").strip()
                         if header_lower in caption_lower or caption_lower in header_lower:
                             if header in NUMERIC_FIELDS:
@@ -209,7 +214,6 @@ def extract_detail_data(driver, detail_url):
                             break
 
                     if not mapped:
-                        # Special cases
                         if "organisation chain" in caption_lower:
                             data["Organization Chain"] = field_value
                         elif "tender reference number" in caption_lower:
@@ -218,7 +222,6 @@ def extract_detail_data(driver, detail_url):
                             data["Tender ID"] = field_value
                 i += 1
 
-    # Work Item Details
     work_section = soup.find(string=lambda s: s and "Work Item Details" in s)
     if work_section:
         parent = work_section.find_parent("table")
@@ -255,7 +258,6 @@ def extract_detail_data(driver, detail_url):
                     elif "Bid Opening Place" in key:
                         data["Bid Opening Place"] = value
 
-    # Critical Dates
     critical_section = soup.find(string=lambda s: s and "Critical Dates" in s)
     if critical_section:
         parent = critical_section.find_parent("table")
@@ -282,7 +284,6 @@ def extract_detail_data(driver, detail_url):
                     elif "Bid Submission End Date" in key:
                         data["Bid Submission End Date"] = value
 
-    # Tender Inviting Authority
     authority_section = soup.find(string=lambda s: s and "Tender Inviting Authority" in s)
     if authority_section:
         parent = authority_section.find_parent("table")
