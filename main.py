@@ -9,9 +9,6 @@ import re
 import os
 import json
 #----------------------------------------------------
-import os
-import json
-from google.oauth2.service_account import Credentials
 
 # Try to load from GitHub secret (environment variable)
 service_account_str = os.getenv("SERVICE_ACCOUNT_JSON")
@@ -20,9 +17,9 @@ if service_account_str:
     # Running on GitHub Actions → use secret
     service_account_info = json.loads(service_account_str)
     creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
-else:
+#else:
     # Running locally → use file
-    creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+ #   creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
 
 
 
