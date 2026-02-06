@@ -96,8 +96,16 @@ service_account_str = os.getenv("SERVICE_ACCOUNT_JSON")
 
 if service_account_str:
     # Running on GitHub Actions → use secret
-    service_account_info = json.loads(service_account_str)
-    creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    print("Loading credentials from GitHub secret...")
+    try:
+        service_account_info = json.loads(service_account_str)
+        creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+    except json.JSONDecodeError:
+        print("ERROR: Invalid JSON in SERVICE_ACCOUNT_JSON secret")
+        raise
+    except Exception as e:
+        print(f"ERROR loading secret: {e}")
+        raise
 #else:
     # Running locally → use file
  #   creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
