@@ -8,6 +8,9 @@ from urllib.parse import urljoin
 import re
 import os
 import json
+import subprocess
+
+
 
 # ────────────────────────────────────────────────
 # CONFIG
@@ -138,17 +141,28 @@ except gspread.exceptions.WorksheetNotFound:
 # ────────────────────────────────────────────────
 # Rest of your functions remain unchanged
 # ────────────────────────────────────────────────
+#---------------------------------------
+#  Chrome detection code
+def get_chrome_major():
+    version = subprocess.check_output(
+        ["google-chrome", "--version"]
+    ).decode("utf-8")
+    
+    match = re.search(r"(\d+)\.", version)
+    return int(match.group(1))
 
+#-------------------------------------
 def init_undetected_driver(headless=True):
     options = uc.ChromeOptions()
     if headless:
-        options.add_argument("--headless")
+        options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--window-size=1366,768")
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36")
-    driver = uc.Chrome(options=options, use_subprocess=True)
+    chrome_major = get_chrome_major()
+    driver = uc.Chrome(options=options, use_subprocess=True, version_main=chrome_major)
     return driver
 
 
